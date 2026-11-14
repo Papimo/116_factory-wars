@@ -28,7 +28,8 @@ function dragPlace(tx, ty) {
     else { ny += Math.sign(ddy); dir = ddy > 0 ? 1 : 3; }
     if (G.tool === 'belt') {
       const lb = bAt(p.last.x, p.last.y);
-      if (lb && lb.type === 'belt' && p.placed.has(lb.id)) lb.rot = dir;
+      // ook de band waarop de sleep begon meedraaien: zo maak je een bocht vanaf het eind van een bestaande rij
+      if (lb && lb.type === 'belt' && (p.placed.has(lb.id) || lb === p.start)) lb.rot = dir;
       G.rot = dir;
     }
     const r = place(G.tool, nx, ny, G.rot);
@@ -49,7 +50,8 @@ cv.addEventListener('pointerdown', e => {
   if (G.tool) {
     const g = ghostTile(), r = place(G.tool, g.tx, g.ty, G.rot);
     if (typeof r === 'string') toastErr(r); else sfx('build');
-    placing = { last: { x: g.tx, y: g.ty }, placed: new Set(typeof r === 'object' ? [r.id] : []) };
+    const sb = bAt(g.tx, g.ty);
+    placing = { last: { x: g.tx, y: g.ty }, placed: new Set(typeof r === 'object' ? [r.id] : []), start: sb && sb.type === 'belt' ? sb : null };
     return;
   }
   const b = bAt(tx, ty);

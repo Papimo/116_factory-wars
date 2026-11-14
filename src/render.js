@@ -181,6 +181,29 @@ function drawBeltAt(g, cx, cy, rot, off) {
   g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(-16, -11, 32, 1.5); g.fillRect(-16, 14, 32, 1);
   g.restore();
 }
+// Bocht: geen band die van achteren invoert, wel precies één van opzij → teken als bocht.
+function feeds(x, y, dir) { const t = bAt(x, y); return t && t.type === 'belt' && t.rot === dir; }
+function beltCurve(b) {
+  const r = b.rot, back = (r + 2) % 4;
+  if (feeds(b.x + DX[back], b.y + DY[back], r)) return 0;
+  const l = (r + 3) % 4, R = (r + 1) % 4;               // links/rechts van de looprichting
+  const fromL = feeds(b.x + DX[l], b.y + DY[l], R), fromR = feeds(b.x + DX[R], b.y + DY[R], l);
+  return fromL && !fromR ? -1 : fromR && !fromL ? 1 : 0;
+}
+function drawBeltCurve(g, b, side, off) {
+  // in lokaal frame: band loopt naar +x, invoer komt van y = side*16 (−1 = links/boven, 1 = rechts/onder)
+  g.save(); g.translate(b.x * T + 16, b.y * T + 16); g.rotate(b.rot * Math.PI / 2); if (side > 0) g.scale(1, -1);
+  // draaipunt in hoek (16,-16): band = kwartring tussen straal 4 en 28
+  const ring = (r0, r1) => { g.beginPath(); g.arc(16, -16, r1, Math.PI / 2, Math.PI); g.arc(16, -16, r0, Math.PI, Math.PI / 2, true); g.closePath(); };
+  g.fillStyle = '#5f5d55'; ring(1, 31); g.fill();
+  g.fillStyle = '#211f1c'; ring(5, 27); g.fill();
+  g.strokeStyle = '#3a372f'; g.lineWidth = 2;
+  for (let a = off / 8 * (Math.PI / 8); a < Math.PI / 2; a += Math.PI / 8) {
+    const ang = Math.PI - a; g.beginPath(); g.moveTo(16 + Math.cos(ang) * 6, -16 + Math.sin(ang) * 6); g.lineTo(16 + Math.cos(ang) * 26, -16 + Math.sin(ang) * 26); g.stroke();
+  }
+  g.strokeStyle = '#8b887c'; g.lineWidth = 1; g.beginPath(); g.arc(16, -16, 30.5, Math.PI / 2, Math.PI); g.stroke();
+  g.restore();
+}
 function drawGunHead(g, x, y, ang, s, flash) {
   g.save(); g.translate(x, y); g.rotate(ang); g.scale(s, s);
   g.fillStyle = '#242523'; g.fillRect(4, -6, 20, 3.4); g.fillRect(4, 2.6, 20, 3.4);
@@ -347,7 +370,10 @@ function draw() {
   ctx.fillStyle = 'rgba(0,0,0,.28)';
   for (const b of L) { rr(ctx, b.x * T + 5, b.y * T + 6, b.w * T - 2, b.h * T - 2, 4); ctx.fill(); }
   const off = (G.time * BELT_SPEED * 32) % 8;
-  for (const b of belts) drawBeltAt(ctx, b.x * T + 16, b.y * T + 16, b.rot, off);
+  for (const b of belts) {
+    const c = beltCurve(b);
+    if (c) drawBeltCurve(ctx, b, c, off); else drawBeltAt(ctx, b.x * T + 16, b.y * T + 16, b.rot, off);
+  }
   for (const b of belts) for (const it of b.items) {
     let x, y; const cx = b.x + .5, cy = b.y + .5;
     if (it.p < .5) { const k = 1 - it.p * 2; x = cx - DX[it.d] * .5 * k; y = cy - DY[it.d] * .5 * k; }
