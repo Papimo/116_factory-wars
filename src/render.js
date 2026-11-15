@@ -3,7 +3,7 @@
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let DPR = 1, VW = 0, VH = 0;
 const cam = { x: 0, y: 0, z: 1 };
-function resize() { DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR | 0; cv.height = VH * DPR | 0; cv.style.width = VW + 'px'; cv.style.height = VH + 'px'; }
+function resize() { DPR = Math.min(1.5, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR | 0; cv.height = VH * DPR | 0; cv.style.width = VW + 'px'; cv.style.height = VH + 'px'; }
 addEventListener('resize', resize); resize();
 
 // ---------- spullen ----------
@@ -272,7 +272,37 @@ function ring(x, y, r, col, fill) {
 }
 
 // ---------- hoofdtekening ----------
-let shadowCv = null;
+let shadowCv = null, sunG = null;
+
+// ---------- voorgetekende sprites (snelheid): banden en kruipers één keer tekenen, daarna alleen plakken ----------
+const SPR_RES = 2, BELT_STEPS = 32, BUG_FR = 8, beltCache = new Map(), bugCache = new Map();
+function beltSpr(rot, side, off) {
+  const f = (((off % 16) + 16) % 16 / 16 * BELT_STEPS | 0) % BELT_STEPS, key = rot * 1000 + (side + 1) * 100 + f;
+  let c = beltCache.get(key);
+  if (!c) {
+    c = mk(T * SPR_RES, T * SPR_RES); const g = c.getContext('2d'), o = f / BELT_STEPS * 16; g.scale(SPR_RES, SPR_RES);
+    if (side) beltCurveD(g, { x: 0, y: 0, rot }, side, o, S4); else beltD(g, 16, 16, rot, o, S4);
+    beltCache.set(key, c);
+  }
+  return c;
+}
+// kruiper: 8 loopstanden (pootcyclus = π), los van draaiing; glans apart want die hangt aan de zon
+function bugFast(e, S, B) {
+  const r = ENEMY[e.type].r * T, hit = e.hitT > 0, bite = e.bite > 0;
+  const f = (((e.anim / Math.PI * BUG_FR) % BUG_FR) + BUG_FR) % BUG_FR | 0, key = e.type + '|' + f + (hit ? 'h' : '') + (bite ? 'b' : '');
+  let s = bugCache.get(key);
+  if (!s) {
+    const R = Math.ceil(r * 2.05) + 2; s = { c: mk(R * 2 * SPR_RES, R * 2 * SPR_RES), R };
+    const g = s.c.getContext('2d'); g.scale(SPR_RES, SPR_RES);
+    bugD(g, { x: R, y: R, ang: 0, r, anim: f * Math.PI / BUG_FR, hit, bite }, S, B, true);
+    bugCache.set(key, s);
+  }
+  const x = e.x * T, y = e.y * T, ca = Math.cos(e.ang), sa = Math.sin(e.ang);
+  ctx.save(); ctx.transform(ca, sa, -sa, ca, x, y);
+  ctx.drawImage(s.c, -s.R, -s.R, s.R * 2, s.R * 2);
+  bugSheen(ctx, { ang: e.ang, r }, S, B);
+  ctx.restore();
+}
 function draw() {
   const W = cv.width, H = cv.height, K = cam.z * DPR, z = cam.z, S = S4;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#5a4030'; ctx.fillRect(0, 0, W, H);
@@ -281,7 +311,7 @@ function draw() {
   const vx0 = cam.x - W / 2 / K, vy0 = cam.y - H / 2 / K, vx1 = cam.x + W / 2 / K, vy1 = cam.y + H / 2 / K;
   const vis = (x, y, m) => x > vx0 - m && x < vx1 + m && y > vy0 - m && y < vy1 + m;
   const det = z >= .55, mid = z >= .3, thick = z < .42, mapF = smooth(.3, .2, z), dA = 1 - mapF;
-  ctx.setTransform(K, 0, 0, K, W / 2 - cam.x * K, H / 2 - cam.y * K); ctx.imageSmoothingQuality = 'high';
+  ctx.setTransform(K, 0, 0, K, W / 2 - cam.x * K, H / 2 - cam.y * K); ctx.imageSmoothingQuality = 'medium';
 
   // terrein (stukken worden lui gebouwd: eerst wat in beeld is, daarna één per beeld op de achtergrond)
   if (mapF < 1) {
@@ -305,7 +335,7 @@ function draw() {
     if (mid) drawTrail(ctx, S);
     // banden + spullen
     const off = (G.time * beltSpeed() * T) % 16;
-    if (det) for (const b of belts) { const c = beltCurve(b); if (c) beltCurveD(ctx, b, c, off, S); else beltD(ctx, b.x * T + 16, b.y * T + 16, b.rot, off, S); }
+    if (det) for (const b of belts) ctx.drawImage(beltSpr(b.rot, beltCurve(b), off), b.x * T, b.y * T, T, T);
     else {
       ctx.fillStyle = S.beltBed; for (const b of belts) ctx.fillRect(b.x * T, b.y * T, T, T);
       ctx.fillStyle = S.metal; for (const b of belts) { if (b.rot % 2 === 0) { ctx.fillRect(b.x * T, b.y * T, T, 5); ctx.fillRect(b.x * T, b.y * T + T - 5, T, 5); } else { ctx.fillRect(b.x * T, b.y * T, 5, T); ctx.fillRect(b.x * T + T - 5, b.y * T, 5, T); } }
@@ -314,17 +344,18 @@ function draw() {
     ctx.globalAlpha = 1;
 
     // schaduwlaag: alles zwart, één keer inkleuren → geen dubbele schaduw waar ze overlappen
-    if (!shadowCv || shadowCv.width !== W || shadowCv.height !== H) shadowCv = mk(W, H);
+    const SW = Math.ceil(W / 2), SH = Math.ceil(H / 2), K2 = K / 2;
+    if (!shadowCv || shadowCv.width !== SW || shadowCv.height !== SH) shadowCv = mk(SW, SH);
     const l = shadowCv.getContext('2d');
-    l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = 'source-over'; l.clearRect(0, 0, W, H); l.setTransform(K, 0, 0, K, W / 2 - cam.x * K, H / 2 - cam.y * K);
+    l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = 'source-over'; l.clearRect(0, 0, SW, SH); l.setTransform(K2, 0, 0, K2, W / 4 - cam.x * K2, H / 4 - cam.y * K2);
     for (const b of L) { const m = shMask(b.type); l.drawImage(m.c, b.x * T - m.pad, b.y * T - m.pad, m.w, m.h); }
     if (mid) { const go = 16 * S.shK; for (const b of L) { if (b.type === 'turret') gunD(l, (b.x + 1) * T + S.sx * go, (b.y + 1) * T + S.sy * go, b.ang, false, S); else if (b.type === 'core') gunD(l, (b.x + 1.5) * T + S.sx * go * 1.5, (b.y + 1.5) * T - 6 + S.sy * go * 1.5, b.ang, false, S, .9); } }
     l.fillStyle = '#000';
     for (const e of G.enemies) if (vis(e.x * T, e.y * T, T)) { const r = ENEMY[e.type].r * T, L2 = r * S.shK * 1.6; l.beginPath(); l.ellipse(e.x * T + S.sx * L2 * .7, e.y * T + S.sy * L2 * .7, r * 1.1 + L2 * .6, r * .75, Math.atan2(S.sy, S.sx), 0, 7); l.fill(); }
     for (const n of M.nests) if (!n.dead && vis(n.x * T, n.y * T, 4 * T)) nestShadow(l, n, S);
     if (mid) figShadow(l, S);
-    l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = 'source-in'; l.fillStyle = S.shCol; l.fillRect(0, 0, W, H);
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = dA; ctx.drawImage(shadowCv, 0, 0); ctx.restore();
+    l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = 'source-in'; l.fillStyle = S.shCol; l.fillRect(0, 0, SW, SH);
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = dA; ctx.imageSmoothingEnabled = true; ctx.drawImage(shadowCv, 0, 0, SW * 2, SH * 2); ctx.restore();
 
     ctx.globalAlpha = dA;
     for (const n of M.nests) if (!n.dead && vis(n.x * T, n.y * T, 4 * T)) nestD(ctx, n, rt, S);
@@ -338,7 +369,7 @@ function draw() {
     // kruipers
     for (const e of G.enemies) if (vis(e.x * T, e.y * T, T)) {
       const B = BUGPAL[e.type];
-      if (mid) bugD(ctx, enemyView(e), S, B);
+      if (mid) bugFast(e, S, B);
       else { const r = Math.max(ENEMY[e.type].r * T, 2.2 / z); ctx.fillStyle = B.dark; circ(ctx, e.x * T, e.y * T, r * 1.15); ctx.fill(); ctx.fillStyle = B.col; circ(ctx, e.x * T, e.y * T, r * .8); ctx.fill(); ctx.fillStyle = B.glow; circ(ctx, e.x * T, e.y * T, r * .35); ctx.fill(); }
     }
     if (mapF < .5) drawPlayer(ctx, S, z, !mid);
@@ -424,7 +455,7 @@ function draw() {
 
   // middagzon (schermbreed)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (dA > 0) { ctx.save(); ctx.globalAlpha = dA; ctx.globalCompositeOperation = 'screen'; const gr = ctx.createRadialGradient(-W * .07, -H * .18, 10, -W * .07, -H * .18, W * .9); gr.addColorStop(0, 'rgba(255,248,220,.4)'); gr.addColorStop(1, 'rgba(255,248,220,0)'); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+  if (dA > 0) { ctx.save(); ctx.globalAlpha = dA; ctx.globalCompositeOperation = 'screen'; if (!sunG || sunG.w !== W || sunG.h !== H) { const gr = ctx.createRadialGradient(-W * .07, -H * .18, 10, -W * .07, -H * .18, W * .9); gr.addColorStop(0, 'rgba(255,248,220,.4)'); gr.addColorStop(1, 'rgba(255,248,220,0)'); sunG = { g: gr, w: W, h: H }; } ctx.fillStyle = sunG.g; ctx.fillRect(0, 0, W, H); ctx.restore(); }
   if (G.poll > 50) { ctx.fillStyle = `rgba(110,70,50,${Math.min(.18, G.poll / 5000)})`; ctx.fillRect(0, 0, W, H); }
 }
 

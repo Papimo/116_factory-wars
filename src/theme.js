@@ -32,10 +32,18 @@ function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
 function circ(g, x, y, r) { g.beginPath(); g.arc(x, y, Math.max(.01, r), 0, 7); }
 function poly(g, pts) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); }
 function hex(c) { c = c.replace('#', ''); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; }
-function shade(c, f) { const a = hex(c), t = f < 0 ? 0 : 255, p = Math.abs(f); return '#' + a.map(v => Math.round(v + (t - v) * p).toString(16).padStart(2, '0')).join(''); }
+const SHADE_C = new Map();
+function shade(c, f) { const k = c + '|' + f; let v = SHADE_C.get(k); if (v === undefined) SHADE_C.set(k, v = shade0(c, f)); return v; }
+function shade0(c, f) { const a = hex(c), t = f < 0 ? 0 : 255, p = Math.abs(f); return '#' + a.map(v => Math.round(v + (t - v) * p).toString(16).padStart(2, '0')).join(''); }
 function rgba(a, al) { return `rgba(${a[0] | 0},${a[1] | 0},${a[2] | 0},${al})`; }
 function octP(g, cx, cy, r) { const p = []; for (let i = 0; i < 8; i++) { const a = (i + .5) / 8 * 6.283; p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } poly(g, p); }
-function glow(c, x, y, r, col, a) { const gr = c.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`); c.fillStyle = gr; circ(c, x, y, r); c.fill(); }
+// gloed: verloop één keer per (kleur, straal) voorgetekend, daarna alleen plakken met doorzichtigheid
+const GLOW_C = new Map();
+function glow(c, x, y, r, col, a) {
+  const R = Math.max(1, Math.round(r)), k = col + '|' + R; let s = GLOW_C.get(k);
+  if (!s) { s = mk(R * 4, R * 4); const g = s.getContext('2d'), gr = g.createRadialGradient(R * 2, R * 2, 0, R * 2, R * 2, R * 2); gr.addColorStop(0, `rgba(${col},1)`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(0, 0, R * 4, R * 4); GLOW_C.set(k, s); }
+  const ga = c.globalAlpha; c.globalAlpha = ga * a; c.drawImage(s, x - r, y - r, r * 2, r * 2); c.globalAlpha = ga;
+}
 
 // ---------- plaatstaal-kit ----------
 function rivetD(g, x, y, S, R) {
@@ -274,7 +282,8 @@ function chuteD(c, b, S) {
 
 // ---------- kruiper (schorpioen) ----------
 // e: { x, y (px), ang, r (px), anim, hit }
-function bugD(c, e, S, B) {
+function bugSheen(c, e, S, B) { const s = e.r, la = Math.atan2(S.ly, S.lx) - e.ang; c.fillStyle = `rgba(255,240,210,${B.sheen})`; c.beginPath(); c.ellipse(Math.cos(la) * s * .22 - s * .1, Math.sin(la) * s * .22, s * .48, s * .18, la + Math.PI / 2, 0, 7); c.fill(); }
+function bugD(c, e, S, B, bake) {
   const s = e.r;
   c.save(); c.translate(e.x, e.y); c.rotate(e.ang); c.lineCap = 'round';
   c.strokeStyle = B.dark; c.lineWidth = Math.max(1, s * .13);
@@ -297,7 +306,7 @@ function bugD(c, e, S, B) {
     c.fillStyle = B.col; c.beginPath(); c.ellipse(s * x - .2, -.3, s * rx, s * ry, 0, 0, 7); c.fill();
   }
   c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = .8; for (const x of [-.4, -.05]) { c.beginPath(); c.arc(s * x, 0, s * .42, -1.2, 1.2); c.stroke(); }
-  const la = Math.atan2(S.ly, S.lx) - e.ang; c.fillStyle = `rgba(255,240,210,${B.sheen})`; c.beginPath(); c.ellipse(Math.cos(la) * s * .22 - s * .1, Math.sin(la) * s * .22, s * .48, s * .18, la + Math.PI / 2, 0, 7); c.fill();
+  if (!bake) bugSheen(c, e, S, B);
   c.fillStyle = B.glow; for (let i = 0; i < 3; i++) { circ(c, -s * .55 + i * s * .36, (i % 2 ? 1 : -1) * s * .13, Math.max(.8, s * .08)); c.fill(); }
   if (e.hit) { c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-s * .2, 0, s * 1.1, s * .6, 0, 0, 7); c.fill(); }
   c.restore();
