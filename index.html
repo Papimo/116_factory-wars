@@ -17,6 +17,9 @@
   <div id="hover"></div>
   <div id="toasts"></div>
   <div id="tip" class="panel hidden"></div>
+  <div id="figpanel" class="panel hidden"></div>
+  <div id="respanel" class="panel hidden"></div>
+  <div id="statpanel" class="panel hidden"></div>
 </div>
 
 <div id="menu" class="overlay">
@@ -25,13 +28,16 @@
     <h1>FACTORY<span>WARS</span></h1>
     <p class="lead">Je kern is neergestort op een vijandige planeet. Delf erts, laat machines het werk doen en houd de golven kruipers buiten je muren. Vernietig alle nesten om te winnen.</p>
     <div class="modes">
+      <button id="btnLoad" class="big" disabled>Doorgaan <small>geen opgeslagen spel</small></button>
       <button id="btnStart" class="big">Vesting <small>nieuw spel</small></button>
       <button class="big" disabled>Run-modus <small>komt nog</small></button>
     </div>
     <div class="help">
-      <div><b>WASD / pijlen</b> camera · <b>scroll</b> zoom · <b>rechts slepen</b> camera</div>
-      <div><b>1–7</b> bouwen · <b>R</b> draaien · <b>Esc</b> stoppen · <b>rechtsklik</b> afbreken (alles terug)</div>
-      <div><b>Klik + vasthouden op erts</b> met de hand delven · <b>spatie</b> pauze</div>
+      <div><b>WASD / pijlen</b> lopen · <b>scroll</b> zoom (ver uit = kaart) · <b>rechts slepen</b> camera los · <b>spatie</b> camera terug</div>
+      <div><b>1–0, X U K G L V M</b> bouwen (binnen 8 tegels van figuur, kern of voorpost) · <b>R</b> draaien · <b>Esc</b> stoppen · <b>rechtsklik</b> afbreken</div>
+      <div><b>Klik + vasthouden op erts</b> delven · <b>T</b> onderzoek · <b>I</b> productie · <b>Alt</b> wat machines maken</div>
+      <div><b>B</b> blauwdruk (sleep een vak) · <b>shift+rechts / shift+klik</b> instellingen kopiëren / plakken · <b>F</b> figuur · <b>P</b> pauze</div>
+      <div>Opslaan gaat elke minuut vanzelf (en met 💾).</div>
     </div>
   </div>
 </div>
@@ -39,8 +45,16 @@
 
 <script src="src/data.js"></script>
 <script src="src/map.js"></script>
+<script src="src/theme.js"></script>
+<script src="src/theme-plus.js"></script>
+<script src="src/figure.js"></script>
 <script src="src/audio.js"></script>
 <script src="src/sim.js"></script>
+<script src="src/systems.js"></script>
+<script src="src/logistics.js"></script>
+<script src="src/theme-logi.js"></script>
+<script src="src/production.js"></script>
+<script src="src/theme-prod.js"></script>
 <script src="src/render.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/main.js"></script>

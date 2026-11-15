@@ -96,7 +96,7 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .14em; text-transform: up
 .cost img { width: 18px; height: 18px; }
 .cost.short { color: var(--bad); }
 
-#mini { position: absolute; right: 8px; bottom: 8px; width: 192px; height: 128px; padding: 0; cursor: pointer; }
+#mini { position: absolute; right: 8px; bottom: 8px; width: 192px; height: 132px; padding: 0; cursor: pointer; }
 #hover { position: absolute; left: 12px; bottom: 12px; max-width: calc(50% - 280px); color: var(--txt); text-shadow: 0 1px 2px #000, 0 0 6px #000; font-size: 13px; }
 #toasts { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .toast { background: rgba(28,27,23,.92); border: 1px solid var(--line); border-left: 3px solid var(--acc); padding: 6px 12px; font-size: 14px; animation: tin .2s ease-out; }
@@ -132,3 +132,62 @@ h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .14em; text-transform: up
   .bbtn { width: 46px; height: 46px; }
   #mini { width: 144px; height: 96px; bottom: 76px; }
 }
+
+/* figuur kiezen + kleuren */
+#figpanel { position: absolute; top: 64px; right: 256px; width: 270px; padding: 10px; }
+#figpanel .fhead { display: flex; justify-content: space-between; align-items: center; }
+#figpanel .x { background: none; border: 0; color: var(--dim); font-size: 14px; padding: 0 2px; }
+#figpanel .x:hover { color: var(--txt); }
+.fopts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fopt { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; background: var(--panel2); border: 1px solid #3c3a32; }
+.fopt canvas { width: 72px; height: 72px; display: block; }
+.fopt span { font-size: 11px; color: var(--dim); }
+.fopt:hover { border-color: #8a7a5a; }
+.fopt.on { border-color: var(--acc); background: #3a2f1e; box-shadow: inset 0 0 0 1px var(--acc); }
+.fopt.on span { color: var(--txt); }
+.fline { margin: 8px 0; font-size: 12px; }
+.fcols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+.fcols label { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 4px 2px 8px; background: var(--panel2); border: 1px solid #34332c; }
+.fcols span { color: var(--dim); font-size: 12px; }
+.fcols input[type=color] { width: 34px; height: 24px; padding: 0; border: 1px solid #57544a; background: none; cursor: pointer; }
+.sbox button { padding: 1px 7px; }
+
+/* ---- uitbreidingen: bouwbalk in groepen, stroom, onderzoek, statistiek, filters ---- */
+.bsep { width: 1px; margin: 4px 3px; background: var(--line); align-self: stretch; }
+#buildbar { max-width: calc(100vw - 420px); flex-wrap: wrap; justify-content: center; }
+.bbtn { width: 50px; height: 50px; }
+.bbtn.lock::after { content: '🔒'; position: absolute; right: 2px; bottom: 1px; font-size: 11px; }
+.bbtn.bp { background: #1c2a38; }
+.meter.pw i { background: linear-gradient(90deg, #3a6a8a, #8cc8f0); }
+.meter.low i { background: linear-gradient(90deg, #8a3a2a, var(--bad)); }
+#status button.on { border-color: var(--acc); background: #4a3a22; }
+#respanel, #statpanel { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); width: min(460px, max(320px, calc(100vw - 520px))); max-height: calc(100vh - 170px); overflow: auto; padding: 10px; }
+#respanel .fhead, #statpanel .fhead { display: flex; justify-content: space-between; align-items: center; }
+#respanel .x, #statpanel .x { background: none; border: 0; color: var(--dim); font-size: 14px; }
+.techs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tech { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 7px 8px; background: var(--panel2); border: 1px solid #3c3a32; }
+.tech b { font-size: 13px; } .tech span { color: var(--dim); font-size: 11px; }
+.tech .kits { display: flex; align-items: center; gap: 2px; color: var(--txt); }
+.tech .kits img { width: 16px; height: 16px; }
+.tech .meter { width: 100%; }
+.tech:hover:not(:disabled) { border-color: var(--acc); }
+.tech.cur { border-color: var(--acc); background: #3a2f1e; box-shadow: inset 0 0 0 1px var(--acc); }
+.tech.done { opacity: .55; cursor: default; } .tech.done b::after { content: ' ✓'; color: var(--good); }
+.tech.locked { opacity: .4; cursor: default; }
+.srow { display: grid; grid-template-columns: 22px 52px 52px 1fr; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px solid #2f2e28; }
+.srow img { width: 20px; height: 20px; } .srow b { font-variant-numeric: tabular-nums; font-size: 12px; }
+.srow b.good { color: var(--good); } .srow b.bad { color: var(--bad); }
+.srow svg { width: 100%; height: 22px; background: #12110e; }
+.fgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin: 4px 0; }
+.fgrid button { aspect-ratio: 1; padding: 2px; background: var(--panel2); border: 1px solid #3c3a32; display: flex; align-items: center; justify-content: center; }
+.fgrid button img { width: 20px; height: 20px; }
+.fgrid button.on { border-color: var(--acc); background: #4a3a22; }
+.hgrid { grid-template-columns: repeat(6, 1fr); }
+.cond { display: flex; gap: 3px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+.cond button { padding: 3px 6px; background: var(--panel2); border: 1px solid #3c3a32; color: inherit; font: inherit; cursor: pointer; }
+.cond button.on { border-color: var(--acc); background: #4a3a22; }
+.cond b { min-width: 32px; text-align: center; }
+
+/* productie B */
+.fdot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid #141210; margin: 0 4px 0 2px; flex: none; }
+.cond button img { width: 18px; height: 18px; vertical-align: middle; }

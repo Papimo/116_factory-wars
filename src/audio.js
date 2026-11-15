@@ -24,7 +24,7 @@ function toneS(t, type, f0, f1, peak, dec, dest) {
 }
 function sfx(kind, vol = 1, x, y) {
   if (!AC) return;
-  const t = AC.currentTime, gap = { shot: .05, die: .06, mine: .1, build: .05 }[kind] || 0;
+  const t = AC.currentTime, gap = { shot: .05, die: .06, mine: .1, build: .05, flame: .09 }[kind] || 0;
   if (lastS[kind] && t - lastS[kind] < gap) return;
   if (x !== undefined) { const d = Math.hypot(x - cam.x / T, y - cam.y / T); if (d > 28) return; vol *= Math.max(.15, 1 - d / 28); }
   lastS[kind] = t;
@@ -34,6 +34,7 @@ function sfx(kind, vol = 1, x, y) {
     case 'die': noiseS(t, .15, 'lowpass', 700, 1, .4, .12, out); toneS(t, 'sine', 260, 70, .2, .12, out); break;
     case 'boom': noiseS(t, .9, 'lowpass', 380, .8, 1, .8, out); toneS(t, 'sine', 80, 30, .6, .6, out); break;
     case 'mine': noiseS(t, .06, 'bandpass', 1200, 3, .35, .05, out); toneS(t, 'triangle', 900, 700, .08, .04, out); break;
+    case 'flame': noiseS(t, .14, 'lowpass', 900, .7, .22, .12, out); break;
     case 'build': toneS(t, 'square', 520, 380, .08, .05, out); noiseS(t, .04, 'highpass', 3000, 1, .15, .03, out); break;
     case 'horn': {
       const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700; f.connect(out);
